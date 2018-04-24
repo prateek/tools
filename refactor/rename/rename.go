@@ -30,7 +30,6 @@ import (
 
 	"golang.org/x/tools/go/loader"
 	"golang.org/x/tools/go/types/typeutil"
-	"golang.org/x/tools/refactor/importgraph"
 	"golang.org/x/tools/refactor/satisfy"
 )
 
@@ -259,54 +258,55 @@ func Main(ctxt *build.Context, offsetFlag, fromFlag, to string) error {
 	}
 
 	// -- Load a larger program, for global renamings ---------------------
+	/*
+		if requiresGlobalRename(fromObjects, to) {
+			// For a local refactoring, we needn't load more
+			// packages, but if the renaming affects the package's
+			// API, we we must load all packages that depend on the
+			// package defining the object, plus their tests.
 
-	if requiresGlobalRename(fromObjects, to) {
-		// For a local refactoring, we needn't load more
-		// packages, but if the renaming affects the package's
-		// API, we we must load all packages that depend on the
-		// package defining the object, plus their tests.
+			if Verbose {
+				log.Print("Potentially global renaming; scanning workspace...")
+			}
 
-		if Verbose {
-			log.Print("Potentially global renaming; scanning workspace...")
-		}
+			// Scan the workspace and build the import graph.
+			_, rev, errors := importgraph.Build(ctxt)
+			if len(errors) > 0 {
+				// With a large GOPATH tree, errors are inevitable.
+				// Report them but proceed.
+				fmt.Fprintf(os.Stderr, "While scanning Go workspace:\n")
+				for path, err := range errors {
+					fmt.Fprintf(os.Stderr, "Package %q: %s.\n", path, err)
+				}
+			}
 
-		// Scan the workspace and build the import graph.
-		_, rev, errors := importgraph.Build(ctxt)
-		if len(errors) > 0 {
-			// With a large GOPATH tree, errors are inevitable.
-			// Report them but proceed.
-			fmt.Fprintf(os.Stderr, "While scanning Go workspace:\n")
-			for path, err := range errors {
-				fmt.Fprintf(os.Stderr, "Package %q: %s.\n", path, err)
+			// Enumerate the set of potentially affected packages.
+			affectedPackages := make(map[string]bool)
+			for _, obj := range fromObjects {
+				// External test packages are never imported,
+				// so they will never appear in the graph.
+				for path := range rev.Search(obj.Pkg().Path()) {
+					affectedPackages[path] = true
+				}
+			}
+
+			// TODO(adonovan): allow the user to specify the scope,
+			// or -ignore patterns?  Computing the scope when we
+			// don't (yet) support inputs containing errors can make
+			// the tool rather brittle.
+
+			// Re-load the larger program.
+			iprog, err = loadProgram(ctxt, affectedPackages)
+			if err != nil {
+				return err
+			}
+
+			fromObjects, err = findFromObjects(iprog, spec)
+			if err != nil {
+				return err
 			}
 		}
-
-		// Enumerate the set of potentially affected packages.
-		affectedPackages := make(map[string]bool)
-		for _, obj := range fromObjects {
-			// External test packages are never imported,
-			// so they will never appear in the graph.
-			for path := range rev.Search(obj.Pkg().Path()) {
-				affectedPackages[path] = true
-			}
-		}
-
-		// TODO(adonovan): allow the user to specify the scope,
-		// or -ignore patterns?  Computing the scope when we
-		// don't (yet) support inputs containing errors can make
-		// the tool rather brittle.
-
-		// Re-load the larger program.
-		iprog, err = loadProgram(ctxt, affectedPackages)
-		if err != nil {
-			return err
-		}
-
-		fromObjects, err = findFromObjects(iprog, spec)
-		if err != nil {
-			return err
-		}
-	}
+	*/
 
 	// -- Do the renaming -------------------------------------------------
 
